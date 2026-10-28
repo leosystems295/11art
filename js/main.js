@@ -80,7 +80,7 @@
   function collect(form) {
     var data = {};
     Array.prototype.forEach.call(form.elements, function (el) {
-      if (!el.name || el.name === 'botcheck' || el.name === 'access_key' || el.disabled) return;
+      if (!el.name || el.name === 'botcheck' || el.disabled) return;
       if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
       if (el.value === '') return;
       data[el.name] = data[el.name] ? data[el.name] + ', ' + el.value : el.value;
@@ -91,33 +91,32 @@
     var hp = form.querySelector('[name="botcheck"]');
     if (hp && hp.checked) return; // Spam-Bot
     var btn = form.querySelector('[type="submit"]');
-    var key = form.getAttribute('data-key');
+    var endpoint = form.getAttribute('data-endpoint');
     var data = collect(form);
-    if (!key) {
-      setStatus(form, 'Danke für deine Anfrage! Wir melden uns so schnell wie möglich bei dir. (Vorschau: Das Formular ist noch nicht mit einem Postfach verbunden.)', 'ok');
+    var done = function () {
       form.classList.add('is-sent');
+      form.reset();
       window.scrollTo({ top: Math.max(0, form.getBoundingClientRect().top + window.scrollY - 140), behavior: 'smooth' });
+    };
+    if (!endpoint) {
+      setStatus(form, 'Danke für deine Anfrage! Wir melden uns so schnell wie möglich bei dir. (Vorschau: Hier wird noch nichts verschickt.)', 'ok');
+      done();
       return;
     }
-    data.access_key = key;
-    data.subject = form.getAttribute('data-subject') || 'Neue Anfrage über die Website';
-    data.from_name = '11 – Art of Wall Design Website';
-    if (data.email) data.replyto = data.email;
+    data.seite = location.pathname;
     var label = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.classList.add('is-loading'); btn.textContent = 'Wird gesendet …'; }
-    fetch('https://api.web3forms.com/submit', {
+    fetch(endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(data)
-    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.success, j: j }; }); })
+    }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok && j.ok, j: j }; }); })
       .then(function (res) {
-        if (!res.ok) throw new Error('send');
+        if (!res.ok) throw new Error((res.j && res.j.message) || 'send');
         setStatus(form, 'Danke für deine Anfrage! Wir melden uns so schnell wie möglich bei dir.', 'ok');
-        form.classList.add('is-sent');
-        form.reset();
-        var y = form.getBoundingClientRect().top + window.scrollY - 140;
-        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+        done();
       })
-      .catch(function () {
-        setStatus(form, 'Das hat leider nicht geklappt. Bitte versuch es nochmals oder schreib uns direkt per E-Mail oder Telefon.', 'error');
+      .catch(function (err) {
+        var msg = err && err.message && err.message !== 'send' && err.message.length > 20 ? err.message : 'Das hat leider nicht geklappt. Bitte versuch es nochmals oder schreib uns direkt per E-Mail oder Telefon.';
+        setStatus(form, msg, 'error');
       })
       .then(function () { if (btn) { btn.disabled = false; btn.classList.remove('is-loading'); btn.innerHTML = label; } });
   }
