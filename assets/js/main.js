@@ -46,7 +46,7 @@
       if (e.key === 'Escape') setNav(false);
     });
     window.addEventListener('resize', function () {
-      if (window.innerWidth > 1180) setNav(false);
+      if (window.innerWidth > 1000) setNav(false);
     });
   }
 
@@ -70,7 +70,7 @@
   var year = document.getElementById('year');
   if (year) year.textContent = new Date().getFullYear();
 
-  /* Formulare: Web3Forms-Versand, Honeypot, Ladezustand, Erfolg/Fehler ohne Seitenwechsel */
+  /* Formulare: Versand an /api/kontakt, Honeypot, Ladezustand, Erfolg/Fehler ohne Seitenwechsel */
   function setStatus(form, msg, type) {
     var st = form.querySelector('.form-status');
     if (!st) return;
