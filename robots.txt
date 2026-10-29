@@ -1,4 +1,0 @@
-User-agent: *
-Disallow: /
-
-Sitemap: https://www.DEINE-DOMAIN.ch/sitemap.xml
