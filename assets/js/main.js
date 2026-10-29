@@ -46,7 +46,7 @@
       if (e.key === 'Escape') setNav(false);
     });
     window.addEventListener('resize', function () {
-      if (window.innerWidth > 1000) setNav(false);
+      if (window.innerWidth > 1100) setNav(false);
     });
   }
 
@@ -77,6 +77,27 @@
     st.textContent = msg;
     st.className = 'form-status is-visible' + (type ? ' is-' + type : '');
   }
+  /* Bestätigungsfenster: muss aktiv geschlossen werden */
+  function popup(title, text, type) {
+    var dlg = document.createElement('dialog');
+    dlg.className = 'popup' + (type === 'error' ? ' popup--error' : '');
+    dlg.setAttribute('aria-labelledby', 'popup-title');
+    dlg.innerHTML = '<div class="popup-ico" aria-hidden="true">' +
+      (type === 'error'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 7v6M12 16.5v.5"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 12.5 4 4 8-9"/></svg>') +
+      '</div><h2 id="popup-title"></h2><p></p><button class="btn btn--solid popup-close" type="button">Schliessen</button>';
+    dlg.querySelector('h2').textContent = title;
+    dlg.querySelector('p').textContent = text;
+    document.body.appendChild(dlg);
+    var close = function () { dlg.classList.add('is-closing'); setTimeout(function () { if (dlg.open) dlg.close(); dlg.remove(); }, 200); };
+    dlg.querySelector('.popup-close').addEventListener('click', close);
+    dlg.addEventListener('cancel', function (e) { e.preventDefault(); close(); });
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) close(); });
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    dlg.querySelector('.popup-close').focus();
+  }
+
   function collect(form) {
     var data = {};
     Array.prototype.forEach.call(form.elements, function (el) {
@@ -101,6 +122,7 @@
     if (!endpoint) {
       setStatus(form, 'Danke für deine Anfrage! Wir melden uns so schnell wie möglich bei dir. (Vorschau: Hier wird noch nichts verschickt.)', 'ok');
       done();
+      popup('Danke für deine Anfrage!', 'Wir melden uns so schnell wie möglich bei dir. (Vorschau: Hier wird noch nichts verschickt.)', 'ok');
       return;
     }
     data.seite = location.pathname;
@@ -113,10 +135,12 @@
         if (!res.ok) throw new Error((res.j && res.j.message) || 'send');
         setStatus(form, 'Danke für deine Anfrage! Wir melden uns so schnell wie möglich bei dir.', 'ok');
         done();
+        popup('Danke für deine Anfrage!', 'Deine Anfrage ist bei uns angekommen. Wir melden uns so schnell wie möglich bei dir.', 'ok');
       })
       .catch(function (err) {
         var msg = err && err.message && err.message !== 'send' && err.message.length > 20 ? err.message : 'Das hat leider nicht geklappt. Bitte versuch es nochmals oder schreib uns direkt per E-Mail oder Telefon.';
         setStatus(form, msg, 'error');
+        popup('Nicht gesendet', msg, 'error');
       })
       .then(function () { if (btn) { btn.disabled = false; btn.classList.remove('is-loading'); btn.innerHTML = label; } });
   }

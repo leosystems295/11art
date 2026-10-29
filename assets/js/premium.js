@@ -131,4 +131,39 @@
       img.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i); } });
     });
   }
+
+  /* ---------- Scroll-Animationen ----------
+     Bereiche erscheinen einmalig, sobald sie ins Bild kommen.
+     Ablauf: Icons zeichnen sich, Goldrahmen leuchtet nacheinander auf, Verbindungslinie läuft mit. */
+  if (!reduce && 'IntersectionObserver' in window) {
+    var GROUPS = '.steps, .values-row, .tiles-3, .pgrid, .surfaces-track, .faq-list, .values, .more, .sv-list, .detail-grid, .nf-links';
+    var SOLOS = '.head-center, .section-head, .panel, .band .wrap, .cta-inner, .contact-card, .price, .page-head .wrap, .fw-stage, .filter';
+    var items = [];
+    Array.prototype.forEach.call(document.querySelectorAll(GROUPS), function (g) {
+      if (g.closest('.hero')) return;
+      Array.prototype.forEach.call(g.children, function (c, i) { c.style.setProperty('--i', Math.min(i, 7)); });
+      g.classList.add('a-g', 'a-wait'); g._a = 'a-anim';
+      items.push(g);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(SOLOS), function (el) {
+      if (el.closest('.a-anim')) return;
+      el.classList.add('a-s', 'a-wait'); el._a = 'a-solo';
+      items.push(el);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.steps .ico svg *, .values-row .ico svg *'), function (el) {
+      el.setAttribute('pathLength', '1');
+    });
+    var aio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var el = en.target; aio.unobserve(el);
+        /* Übergänge erst jetzt einschalten, dann im nächsten Frame sichtbar machen */
+        el.classList.add(el._a);
+        requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.remove('a-wait'); }); });
+        var t = el.classList.contains('steps') ? 3200 : 1800;
+        setTimeout(function () { el.classList.remove('a-anim', 'a-solo', 'a-g', 'a-s'); }, t);
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    items.forEach(function (el) { aio.observe(el); });
+  }
 })();
