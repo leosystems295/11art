@@ -1,0 +1,13 @@
+{
+  "name": "11-art-of-wall-design",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website 11 – Art of Wall Design mit Kontaktformular-Versand per E-Mail",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
