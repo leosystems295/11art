@@ -41,38 +41,21 @@
   window.addEventListener('scroll', mcta, { passive: true });
   mcta();
 
-  /* ---------- Projektfilter mit editorialem Raster ---------- */
-  var SIZES = ['xl', 'l', 'm', 'm', 'm'];
-  function sizeFor(i, tile) {
-    var s = SIZES[i % SIZES.length];
-    if (tile.hasAttribute('data-small') && (s === 'xl' || s === 'l')) s = 'm'; // kleine Bildquellen nie gross ziehen
-    return s;
-  }
+  /* ---------- Projektfilter ---------- */
   var filter = document.querySelector('.filter');
   var grid = document.querySelector('.pgrid[data-filterable]');
   if (filter && grid) {
     var tiles = Array.prototype.slice.call(grid.querySelectorAll('.pj'));
-    function apply(f) {
-      var vis = tiles.filter(function (t) { return f === 'all' || t.getAttribute('data-cat') === f; });
-      tiles.forEach(function (t) {
-        t.classList.add('is-hidden');
-        t.classList.remove('pj--xl', 'pj--l', 'pj--m', 'pj--s', 'pj--push');
-      });
-      vis.forEach(function (t, i) {
-        t.classList.remove('is-hidden');
-        t.classList.add('pj--' + sizeFor(i, t));
-        if (i % SIZES.length === 1) t.classList.add('pj--push');
-      });
-      grid.classList.remove('is-filtering'); void grid.offsetWidth; grid.classList.add('is-filtering');
-    }
     filter.addEventListener('click', function (e) {
       var b = e.target.closest('button');
       if (!b) return;
+      var f = b.getAttribute('data-filter');
       Array.prototype.forEach.call(filter.children, function (x) {
         x.classList.toggle('is-active', x === b);
         x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
       });
-      apply(b.getAttribute('data-filter'));
+      tiles.forEach(function (t) { t.classList.toggle('is-hidden', !(f === 'all' || t.getAttribute('data-cat') === f)); });
+      grid.classList.remove('is-filtering'); void grid.offsetWidth; grid.classList.add('is-filtering');
     });
   }
 
