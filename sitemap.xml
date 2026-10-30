@@ -1,28 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://www.DEINE-DOMAIN.ch/</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekte.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/leistungen.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/leistung-maler-gipser.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/leistung-wandgestaltung.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/leistung-fugenlos.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/farbwelten.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/ueber-uns.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/ablauf.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/faq.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/kontakt.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekte.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/projekt-wellnessbad-in-sandtoenen.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-dachbad-in-salbeigruen.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-dusche-in-olivgruen.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-bad-in-greige.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-messestand-mit-fugenloser-dusche.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-wand-in-spachteltechnik.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-spachteltechnik-in-sandton.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-metallic-spachtel-in-anthrazit.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-rost-und-patina-effekt.html</loc></url>
-  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-designtapete-im-wohnraum.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/projekt-gipserarbeiten-mit-klaren-kanten.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-dachbad-in-salbeigruen.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-rost-und-patina-effekt.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-wand-in-spachteltechnik.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-designtapete-im-wohnraum.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-dusche-in-olivgruen.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-spachteltechnik-in-sandton.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-messestand-mit-fugenloser-dusche.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/projekt-fugenloses-badezimmer.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-bad-in-greige.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/projekt-metallic-spachtel-in-anthrazit.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/ueber-uns.html</loc></url>
+  <url><loc>https://www.DEINE-DOMAIN.ch/kontakt.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/impressum.html</loc></url>
   <url><loc>https://www.DEINE-DOMAIN.ch/datenschutz.html</loc></url>
 </urlset>

@@ -12,6 +12,8 @@
  *   MAIL_TO     Empfänger der Anfragen (mehrere mit Komma)
  *   MAIL_FROM   Absender (meist gleich wie SMTP_USER)
  *   AUTO_REPLY  «1» = Kunde erhält eine kurze Eingangsbestätigung (Standard: 1)
+ *
+ * Projektbilder aus dem Formular (max. 5, im Browser verkleinert) kommen als Anhang der E-Mail.
  */
 'use strict';
 
@@ -53,15 +55,30 @@ function allowed(rel) {
   return true;
 }
 
+/* Cache: HTML, CSS und JS werden bei jedem Aufruf kurz geprüft (ETag), damit nie eine alte
+   Version hängen bleibt, auch wenn Dateien in mehreren Schritten hochgeladen werden.
+   Bilder und Schriften dürfen 7 Tage im Browser bleiben. */
+const REVALIDATE = new Set(['.html', '.xml', '.txt', '.css', '.js', '.json', '.webmanifest']);
 function sendFile(req, res, file, status = 200) {
   const ext = path.extname(file).toLowerCase();
   const type = TYPES[ext];
+  fs.stat(file, (e, st) => {
+    const etag = st ? `"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"` : '';
+    if (status === 200 && etag && req.headers['if-none-match'] === etag) {
+      securityHeaders(res);
+      res.writeHead(304, { ETag: etag, 'Cache-Control': REVALIDATE.has(ext) ? 'no-cache' : 'public, max-age=604800' });
+      return res.end();
+    }
+    readAndSend(req, res, file, status, ext, type, etag);
+  });
+}
+function readAndSend(req, res, file, status, ext, type, etag) {
   fs.readFile(file, (err, buf) => {
     if (err) return notFound(req, res);
     securityHeaders(res);
     res.setHeader('Content-Type', type);
-    res.setHeader('Cache-Control', ext === '.html' || ext === '.xml' || ext === '.txt'
-      ? 'no-cache' : 'public, max-age=604800');
+    if (etag && status === 200) res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', REVALIDATE.has(ext) ? 'no-cache' : 'public, max-age=604800');
     const gz = COMPRESS.test(type) && /\bgzip\b/.test(req.headers['accept-encoding'] || '') && buf.length > 1024;
     if (gz) { buf = zlib.gzipSync(buf); res.setHeader('Content-Encoding', 'gzip'); res.setHeader('Vary', 'Accept-Encoding'); }
     res.writeHead(status, { 'Content-Length': buf.length });
@@ -85,7 +102,7 @@ function serveStatic(req, res, pathname) {
 }
 
 /* ------------------------------------------------------------ SMTP (ohne Pakete) */
-function smtpSend({ from, to, replyTo, subject, text, html }) {
+function smtpSend({ from, to, replyTo, subject, text, html, attachments = [] }) {
   const host = env('SMTP_HOST'), port = Number(env('SMTP_PORT', '465'));
   const user = env('SMTP_USER'), pass = env('SMTP_PASS');
   const insecure = env('SMTP_INSECURE') === '1'; // nur für lokale Tests
@@ -95,6 +112,9 @@ function smtpSend({ from, to, replyTo, subject, text, html }) {
   const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
   const wrap = (s) => s.replace(/.{1,76}/g, '$&\r\n');
   const boundary = 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const outer = 'm' + boundary;
+  const hasAtt = attachments.length > 0;
+  const encName = (n) => `=?UTF-8?B?${b64(n)}?=`;
   const domain = (from.split('@')[1] || 'localhost').replace(/>.*/, '');
   const msg = [
     `From: =?UTF-8?B?${b64(BRAND)}?= <${from}>`,
@@ -104,11 +124,22 @@ function smtpSend({ from, to, replyTo, subject, text, html }) {
     `Date: ${new Date().toUTCString().replace('GMT', '+0000')}`,
     `Message-ID: <${Date.now()}.${Math.random().toString(36).slice(2)}@${domain}>`,
     'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    hasAtt ? `Content-Type: multipart/mixed; boundary="${outer}"` : `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
+    hasAtt ? `--${outer}` : null,
+    hasAtt ? `Content-Type: multipart/alternative; boundary="${boundary}"` : null,
+    hasAtt ? '' : null,
     `--${boundary}`, 'Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: base64', '', wrap(b64(text)),
     `--${boundary}`, 'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: base64', '', wrap(b64(html)),
-    `--${boundary}--`, ''
+    `--${boundary}--`,
+    ...attachments.flatMap((a) => [
+      `--${outer}`,
+      `Content-Type: ${a.type}; name="${encName(a.name)}"`,
+      'Content-Transfer-Encoding: base64',
+      `Content-Disposition: attachment; filename="${encName(a.name)}"`,
+      '', wrap(a.content.toString('base64'))
+    ]),
+    hasAtt ? `--${outer}--` : null, ''
   ].filter((l) => l !== null).join('\r\n');
 
   return new Promise((resolve, reject) => {
@@ -138,7 +169,7 @@ function smtpSend({ from, to, replyTo, subject, text, html }) {
     const run = async () => {
       await cmd(null, '220');
       await cmd('EHLO ' + os.hostname(), '250');
-      if (!secure) { // STARTTLS
+      if (!secure && env('SMTP_STARTTLS', '1') !== '0') { // STARTTLS (SMTP_STARTTLS=0 nur für lokale Tests)
         await cmd('STARTTLS', '220');
         sock.removeListener('data', onData);
         await new Promise((r, j) => { const t = tls.connect({ ...tlsOpts, socket: sock }, r); t.on('error', j); attach(t); });
@@ -159,9 +190,9 @@ function smtpSend({ from, to, replyTo, subject, text, html }) {
 
 /* ------------------------------------------------------------ Kontakt-API */
 const LABELS = {
-  vorname: 'Vorname', nachname: 'Nachname', email: 'E-Mail', telefon: 'Telefon', rueckruf: 'Rückruf gewünscht',
+  name: 'Name', vorname: 'Vorname', nachname: 'Nachname', email: 'E-Mail', telefon: 'Telefon', rueckruf: 'Rückruf gewünscht',
   leistung: 'Leistung', projektart: 'Projektart', raum: 'Raum', flaeche: 'Fläche (m²)', ort: 'Ort des Projekts',
-  zeitraum: 'Zeitraum', besichtigung: 'Wunschtermin Besichtigung', nachricht: 'Nachricht'
+  zeitraum: 'Zeitraum', besichtigung: 'Wunschtermin Besichtigung', nachricht: 'Nachricht', bilder_info: 'Projektbilder (im Anhang)'
 };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const hits = new Map();
@@ -171,11 +202,27 @@ function limited(ip) { // max. 5 Anfragen pro 10 Minuten und IP
   return list.length > 5;
 }
 
+const MAX_BODY = 12 * 1024 * 1024;           // inkl. Projektbilder (Base64)
+const MAX_FILES = 5, MAX_FILE = 4 * 1024 * 1024; // pro Bild nach dem Dekodieren
+function images(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, MAX_FILES).map((b, i) => {
+    const type = String(b && b.type || '');
+    if (!/^image\/(jpeg|png|webp|heic|heif|gif)$/.test(type)) return null;
+    const content = Buffer.from(String(b.data || ''), 'base64');
+    if (!content.length || content.length > MAX_FILE) return null;
+    const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif', 'image/gif': 'gif' }[type];
+    const base = String(b.name || '').replace(/\.[^.]+$/, '').replace(/[^\w\-äöüÄÖÜ ]+/g, '').trim().slice(0, 60) || `projektbild-${i + 1}`;
+    return { name: `${base}.${ext}`, type, content };
+  }).filter(Boolean);
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
-    req.on('data', (c) => { size += c.length; if (size > 30000) { reject(new Error('zu gross')); req.destroy(); } else chunks.push(c); });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    // Zu grosse Anfragen: Rest verwerfen und sauber mit 413 antworten (ab 40 MB Verbindung abbrechen)
+    req.on('data', (c) => { size += c.length; if (size <= MAX_BODY) chunks.push(c); else if (size > 40 * 1024 * 1024) req.destroy(); });
+    req.on('end', () => { if (size > MAX_BODY) { const e = new Error('zu gross'); e.code = 413; return reject(e); } resolve(Buffer.concat(chunks).toString('utf8')); });
     req.on('error', reject);
   });
 }
@@ -193,7 +240,7 @@ async function handleKontakt(req, res) {
     if (isForm) { // Fallback ohne JavaScript
       if (ok) { res.writeHead(303, { Location: '/danke.html' }); return res.end(); }
       res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8' });
-      return res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anfrage</title><body style="font-family:system-ui;background:#0a0a0b;color:#eee;padding:40px"><p>${esc(message)}</p><p><a style="color:#fff" href="javascript:history.back()">Zurück zum Formular</a></p>`);
+      return res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anfrage</title><body style="font-family:system-ui;background:#F7F5F1;color:#202522;padding:40px"><p>${esc(message)}</p><p><a style="color:#26362E" href="javascript:history.back()">Zurück zum Formular</a></p>`);
     }
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ ok, message }));
@@ -204,18 +251,20 @@ async function handleKontakt(req, res) {
     const d = parse(await readBody(req), req.headers['content-type'] || '');
     if (d.botcheck) return reply(200, true, 'ok'); // Spam-Bot: still ignorieren
     const email = String(d.email || '').trim();
-    if (!d.vorname || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !d.datenschutz) {
-      return reply(400, false, 'Bitte fülle Vorname, eine gültige E-Mail-Adresse und die Datenschutz-Bestätigung aus.');
+    const name = String(d.name || [d.vorname, d.nachname].filter(Boolean).join(' ')).trim().slice(0, 200);
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !d.datenschutz) {
+      return reply(400, false, 'Bitte fülle Name, eine gültige E-Mail-Adresse und die Datenschutz-Bestätigung aus.');
     }
+    const attachments = images(d.bilder);
+    if (attachments.length) d.bilder_info = attachments.map((a) => a.name).join(', ');
     const rows = Object.keys(LABELS).filter((k) => d[k]).map((k) => [LABELS[k], String(d[k]).slice(0, 4000)]);
-    const name = [d.vorname, d.nachname].filter(Boolean).join(' ');
     const topic = d.leistung || d.projektart || 'Anfrage';
     const text = `Neue Anfrage über die Website\n\n${rows.map(([l, v]) => `${l}: ${v}`).join('\n')}\n\nGesendet von: ${d.seite || 'Website'}`;
     const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#141413"><h2 style="font-weight:normal">Neue Anfrage über die Website</h2><table cellpadding="8" style="border-collapse:collapse">${rows.map(([l, v]) => `<tr><td style="color:#6e6a62;vertical-align:top;border-bottom:1px solid #eee">${esc(l)}</td><td style="border-bottom:1px solid #eee;white-space:pre-wrap">${esc(v)}</td></tr>`).join('')}</table><p style="color:#6e6a62;font-size:13px">Antworte einfach auf diese E-Mail, sie geht direkt an ${esc(email)}.</p></div>`;
     const from = env('MAIL_FROM') || env('SMTP_USER');
-    await smtpSend({ from, to: env('MAIL_TO') || from, replyTo: email, subject: `Neue Anfrage: ${topic} – ${name}`, text, html });
+    await smtpSend({ from, to: env('MAIL_TO') || from, replyTo: email, subject: `Neue Anfrage: ${topic} – ${name}`, text, html, attachments });
     if (env('AUTO_REPLY', '1') === '1') {
-      const t = `Hoi ${d.vorname}\n\nDanke für deine Anfrage. Wir haben sie erhalten und melden uns so schnell wie möglich bei dir.\n\nFreundliche Grüsse\n${BRAND}`;
+      const t = `Hoi ${String(d.vorname || name).split(' ')[0]}\n\nDanke für deine Anfrage. Wir haben sie erhalten und melden uns so schnell wie möglich bei dir.\n\nFreundliche Grüsse\n${BRAND}`;
       smtpSend({ from, to: email, subject: 'Deine Anfrage bei 11 – Art of Wall Design', text: t, html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#141413;white-space:pre-wrap">${esc(t)}</div>` })
         .catch((e) => console.error('Bestätigung nicht gesendet:', e.message));
     }
@@ -223,9 +272,17 @@ async function handleKontakt(req, res) {
     return reply(200, true, 'Danke! Deine Anfrage ist bei uns angekommen.');
   } catch (e) {
     console.error('Fehler beim Senden:', e.message);
+    if (e.code === 413) return reply(413, false, 'Die Bilder sind zu gross. Bitte wähle weniger oder kleinere Bilder.');
     return reply(500, false, 'Das hat leider nicht geklappt. Bitte versuch es nochmals oder schreib uns direkt per E-Mail.');
   }
 }
+
+/* ------------------------------------------------------------ Weiterleitungen (entfernte Seiten) */
+const REDIRECTS = {
+  '/farbwelten': '/leistung-wandgestaltung.html',
+  '/ablauf': '/ueber-uns.html',
+  '/faq': '/leistungen.html'
+};
 
 /* ------------------------------------------------------------ Server */
 http.createServer((req, res) => {
@@ -236,5 +293,7 @@ http.createServer((req, res) => {
     res.writeHead(405, { Allow: 'POST' }); return res.end();
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
+  const to = REDIRECTS[pathname.replace(/\.html$/, '')];
+  if (to) { res.writeHead(301, { Location: to }); return res.end(); }
   serveStatic(req, res, pathname);
 }).listen(PORT, () => console.log(`${BRAND} läuft auf Port ${PORT}`));
