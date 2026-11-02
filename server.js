@@ -273,27 +273,38 @@ async function handleKontakt(req, res) {
   } catch (e) {
     console.error('Fehler beim Senden:', e.message);
     if (e.code === 413) return reply(413, false, 'Die Bilder sind zu gross. Bitte wähle weniger oder kleinere Bilder.');
-    return reply(500, false, 'Das hat leider nicht geklappt. Bitte versuch es nochmals oder schreib uns direkt per E-Mail.');
+    return reply(500, false, 'Das hat leider nicht geklappt. Bitte versuch es in ein paar Minuten nochmals. Alternativ erreichst du uns über Instagram (@11_art_official).');
   }
 }
 
 /* ------------------------------------------------------------ Weiterleitungen (entfernte Seiten) */
 const REDIRECTS = {
-  '/farbwelten': '/leistung-wandgestaltung.html',
-  '/ablauf': '/ueber-uns.html',
-  '/faq': '/leistungen.html'
+  '/projekte': '/#arbeiten', '/leistungen': '/#leistungen', '/ueber-uns': '/#ueber-uns', '/kontakt': '/#kontakt',
+  '/ablauf': '/#ueber-uns', '/faq': '/#leistungen', '/farbwelten': '/#leistungen',
+  '/leistung-maler-gipser': '/#leistungen', '/leistung-wandgestaltung': '/#leistungen', '/leistung-fugenlos': '/#leistungen'
 };
+// Frühere Projektseiten (projekt-*.html) zeigen jetzt auf die Galerie der Startseite
+const OLD_PROJECT = /^\/projekt-[a-z0-9-]+$/;
 
 /* ------------------------------------------------------------ Server */
 http.createServer((req, res) => {
-  const { pathname } = new URL(req.url, 'http://x');
+  try { route(req, res); } catch (e) { // ungültige Adressen dürfen den Server nie zum Absturz bringen
+    console.error('Fehlerhafte Anfrage:', req.url, e.message);
+    if (!res.headersSent) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Ungültige Anfrage'); }
+  }
+}).listen(PORT, () => console.log(`${BRAND} läuft auf Port ${PORT}`));
+
+function route(req, res) {
+  let pathname = new URL(req.url.replace(/^\/+/, '/'), 'http://x').pathname;
   if (pathname === '/healthz') { res.writeHead(200); return res.end('ok'); }
   if (pathname === '/api/kontakt') {
     if (req.method === 'POST') return handleKontakt(req, res);
     res.writeHead(405, { Allow: 'POST' }); return res.end();
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
-  const to = REDIRECTS[pathname.replace(/\.html$/, '')];
+  if (pathname === '/index.html' || pathname === '/index') { res.writeHead(301, { Location: '/' }); return res.end(); } // eine Adresse für die Startseite
+  const clean = pathname.replace(/\.html$/, '');
+  const to = REDIRECTS[clean] || (OLD_PROJECT.test(clean) ? '/#arbeiten' : null);
   if (to) { res.writeHead(301, { Location: to }); return res.end(); }
   serveStatic(req, res, pathname);
-}).listen(PORT, () => console.log(`${BRAND} läuft auf Port ${PORT}`));
+}
