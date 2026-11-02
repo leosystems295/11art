@@ -25,7 +25,8 @@ auf der Website nicht; im Impressum und in der Datenschutzerklärung sind sie al
 - [ ] Rechtliche Prüfung durch eine Fachperson (es wird keine Konformität behauptet)
 
 ## Bilder
-- [ ] Projektfotos in höherer Auflösung (mind. 2400 px Breite), vor allem für das grosse Startbild und die kleinen Detailbilder
+- [ ] Projektfotos in höherer Auflösung (mind. 2400 px Breite), vor allem für das grosse Startbild
+- [ ] Bessere Fotos für Metallic-Spachtel, Spachteltechnik Sandton und Bad in Greige (sind vorerst nicht in der Galerie, weil zu klein bzw. Weitwinkel)
 
 ## Vertrauen
 - [ ] Echte Google-Bewertungen (nur falls vorhanden)

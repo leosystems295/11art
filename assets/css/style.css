@@ -91,10 +91,12 @@ p:last-child{margin-bottom:0}
 .hero{position:relative;min-height:min(86svh,820px);display:flex;align-items:flex-end;overflow:hidden}
 .hero-img{position:absolute;inset:0}
 .hero-img img{width:100%;height:100%;object-fit:cover;object-position:50% 60%}
-.hero-img::after{content:"";position:absolute;inset:0;background:rgba(18,18,16,.5)}
+/* Abdunkeln nur dort, wo der Text steht: unten stark, oben fast klar */
+.hero-img::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(18,18,16,.86) 0%,rgba(18,18,16,.55) 38%,rgba(18,18,16,.12) 75%,rgba(18,18,16,.05) 100%)}
 .hero-text{position:relative;padding-block:clamp(48px,8vw,96px)}
 .hero h1{max-width:12ch;margin-bottom:20px}
-.hero p{max-width:40ch;font-size:clamp(1.05rem,1rem + .3vw,1.25rem);color:#ddd8cf;margin-bottom:30px}
+.hero p{max-width:42ch;font-size:clamp(1.05rem,1rem + .3vw,1.25rem);color:#e2ddd4;margin-bottom:30px}
+.hero h1{text-shadow:0 1px 24px rgba(0,0,0,.25)}
 
 /* Abschnittskopf */
 .head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 24px;margin-bottom:clamp(28px,4vw,48px)}
@@ -109,7 +111,7 @@ p:last-child{margin-bottom:0}
 .work figcaption b{font-family:var(--head);font-weight:600;font-size:1.05rem;letter-spacing:-.01em}
 .work figcaption span{font-size:14.5px;color:var(--muted)}
 @media (max-width:1000px){.works{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:520px){.works{grid-template-columns:1fr 1fr;gap:22px 12px}.work figcaption{padding-top:8px}.work figcaption b{font-size:.92rem;line-height:1.3}.work figcaption span{display:none}}
+@media (max-width:520px){.works{grid-template-columns:1fr 1fr;gap:22px 12px}.work:first-child{grid-column:1 / -1}.work:first-child img{aspect-ratio:4 / 3}.work figcaption{padding-top:8px}.work figcaption b{font-size:.92rem;line-height:1.3}.work figcaption span{display:none}}
 
 /* Leistungen */
 .services{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px clamp(24px,4vw,56px)}
