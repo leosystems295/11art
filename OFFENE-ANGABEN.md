@@ -8,18 +8,19 @@ auf der Website nicht; im Impressum und in der Datenschutzerklärung sind sie al
 ## Kontakt (fehlt, wird auf der Website ausgeblendet)
 - [ ] Telefonnummer
 - [ ] E-Mail-Adresse
-- [ ] Adresse (Strasse, PLZ, Ort)
+- [x] Adresse: Hauptstrasse 196, 4565 Recherswil (Handelsregister)
 - [ ] Erreichbarkeit / Öffnungszeiten (optional)
 - [ ] Einsatzgebiet (welche Orte/Regionen ausser Solothurn)
 
 ## Über uns
 - [ ] Echtes Foto vom Inhaber oder Team bei der Arbeit (bis dahin zeigt «Über uns» das Musterwand-Foto; eintragen in `SITE['team_photo']`)
-- [ ] Name des Inhabers und 2–3 Sätze persönliche Vorstellung
+- [x] Name: Mihael Petrovic, Inhaber und Geschäftsführer (Handelsregister)
+- [ ] 2–3 Sätze persönliche Vorstellung (optional, `SITE['owner_intro']`)
 
 ## Rechtliches (Impressum / Datenschutz)
-- [ ] Inhaber/in (vollständiger Name)
-- [ ] Rechtsform
-- [ ] UID-Nummer, Handelsregistereintrag (falls vorhanden)
+- [x] Geschäftsführer: Mihael Petrovic
+- [x] Rechtsform: GmbH (11 Art GmbH)
+- [x] UID CHE-382.600.780, HR Solothurn CH-241.4.024.650-3
 - [ ] E-Mail-Anbieter und Standort des Postfachs (für das Kontaktformular)
 - [ ] Serverstandort bei Render
 - [ ] Rechtliche Prüfung durch eine Fachperson (es wird keine Konformität behauptet)
